@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from booking_agent.agent import guardrails
 from booking_agent.agent import state as S
+from booking_agent.agent.rag import retrieve
 from booking_agent.agent.state import ConversationState
 from booking_agent.db.enums import MemberTier
 from booking_agent.tools.errors import CapExceededError, SeatUnavailableError, ToolError
@@ -60,6 +61,12 @@ TOOL_SCHEMAS: list[dict] = [
         "description": "Atomically hold specific seats for 10 minutes (requires a prior quote). Moves to the confirmation gate.",
         "parameters": {"type": "object", "properties": {
             "seat_ids": {"type": "array", "items": {"type": "string"}}}, "required": ["seat_ids"]}}},
+    {"type": "function", "function": {
+        "name": "lookup_venue_info",
+        "description": "Answer venue/FAQ questions from the knowledge base — parking, gate/door opening times, accessibility, prohibited items, age policy, refunds, payment methods. ALWAYS call this when the user asks any 'when/where/how/can I…' question about a venue, gates, parking, etc. Do NOT answer from memory.",
+        "parameters": {"type": "object", "properties": {
+            "question": {"type": "string", "description": "the user's question, verbatim or paraphrased"}
+        }, "required": ["question"]}}},
 ]
 
 
@@ -146,7 +153,19 @@ _ALLOWED: dict[str, Callable[[Session, ConversationState, dict], dict]] = {
     "list_categories": _t_list_categories,
     "quote_price": _t_quote_price,
     "hold_seats": _t_hold_seats,
+    "lookup_venue_info": lambda db, state, args: _t_lookup_venue_info(args),
 }
+
+
+def _t_lookup_venue_info(args: dict) -> dict:
+    """RAG lookup: return top knowledge-base snippets for a venue/FAQ question."""
+    question = (args.get("question") or "").strip()
+    if not question:
+        return {"error": "empty question"}
+    snippets = retrieve(question, k=2, min_overlap=1)
+    if not snippets:
+        return {"snippets": [], "note": "No matching info in the venue knowledge base."}
+    return {"snippets": snippets}
 
 
 def dispatch(db: Session, state: ConversationState, name: str, args: dict) -> dict:
