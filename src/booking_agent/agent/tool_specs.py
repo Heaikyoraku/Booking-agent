@@ -96,7 +96,10 @@ def _t_select_event(db: Session, state: ConversationState, args: dict) -> dict:
 def _t_lookup_member(db: Session, state: ConversationState, args: dict) -> dict:
     m = lookup_member_by_email(db, args["email"])
     state.email = m.email
-    state.name = (m.email.split("@", 1)[0].split(".")[0] or "").title() or None
+    # Only set the name from a real member match. Deriving "Hessah" from
+    # hessah@gmail.com leaks the email handle and makes the agent address
+    # the user by a fake name when they're not even a member.
+    state.name = m.name if m.is_member else None
     state.tier = m.tier.value if m.tier else None
     state.is_member = m.is_member
     state.ticket_cap = m.ticket_cap
