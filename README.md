@@ -1,5 +1,9 @@
 # Booking-Agent
 
+> [!NOTE]
+> **SDA Agentic AI Bootcamp team capstone (2026).** This repository represents a collaborative prototype, not Hessah AlMujally's independent rebuild. The team used AI-assisted development, and the payment flow was demonstrated with mock/sandbox components rather than a live production integration. Feature statuses and each contributor's individual scope should be verified before describing this as production-ready work. The independent event-booking project is being rebuilt separately for engineering practice.
+
+
 > An AI concierge for live events in Saudi Arabia. Ask in chat, get your member
 > discount applied automatically, pick a seat from a live map, hold it for 10
 > minutes, **confirm before you pay**, and receive a signed PDF/QR ticket in
